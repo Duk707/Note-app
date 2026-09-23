@@ -92,8 +92,8 @@ export function App() {
             {initialLoading
               ? 'Checking Authentication...'
               : session
-              ? 'Step 7 - Read Notes'
-              : 'Step 7 - Authentication Required'}
+              ? 'Step 8 - Create Notes'
+              : 'Step 8 - Authentication Required'}
           </span>
         </div>
       </div>
@@ -119,6 +119,7 @@ export function App() {
         </div>
       ) : session ? (
         <Dashboard
+          userId={session.user.id}
           userEmail={session.user.email ?? ''}
           onSignOut={handleSignOut}
           signOutLoading={signOutLoading}
