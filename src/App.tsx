@@ -92,8 +92,8 @@ export function App() {
             {initialLoading
               ? 'Checking Authentication...'
               : session
-              ? 'Step 6 - Protected Notes Dashboard'
-              : 'Step 6 - Authentication Required'}
+              ? 'Step 7 - Read Notes'
+              : 'Step 7 - Authentication Required'}
           </span>
         </div>
       </div>
