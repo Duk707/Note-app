@@ -88,16 +88,6 @@ export function App() {
           </svg>
         </div>
         <h1 className="app-title">Notes App</h1>
-        <div className="status-badge">
-          <span className="status-dot"></span>
-          <span>
-            {initialLoading
-              ? 'Checking Authentication...'
-              : session
-              ? 'Step 11 - Validation & Error Handling'
-              : 'Step 11 - Authentication Required'}
-          </span>
-        </div>
       </div>
 
       {authError && (

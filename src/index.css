@@ -32,7 +32,7 @@ body {
 
 #root {
   width: 100%;
-  max-width: 680px;
+  max-width: 760px;
 }
 
 .app-container {
@@ -79,27 +79,7 @@ body {
   margin-bottom: 0.5rem;
 }
 
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.4rem 1rem;
-  background: var(--badge-bg);
-  border: 1px solid var(--badge-border);
-  color: var(--badge-text);
-  border-radius: 9999px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  margin-bottom: 1.75rem;
-}
 
-.status-dot {
-  width: 8px;
-  height: 8px;
-  background-color: #3b82f6;
-  border-radius: 50%;
-  box-shadow: 0 0 8px #3b82f6;
-}
 
 .app-description {
   color: var(--text-muted);
@@ -893,6 +873,99 @@ body {
   opacity: 0.7;
   cursor: not-allowed;
 }
+
+/* Step 12 - Responsive Polish, Focus Outlines & Overflow Protection */
+.note-title,
+.note-content,
+.dashboard-user-email,
+.user-email-value,
+.app-title,
+.alert {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.dashboard-user-badge {
+  max-width: 100%;
+}
+
+.dashboard-user-email {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 280px;
+}
+
+/* Focus Visible Accessibility Rings */
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+.auth-tab:focus-visible,
+.auth-link-button:focus-visible {
+  outline: 2px solid var(--accent-purple);
+  outline-offset: 2px;
+}
+
+/* Mobile Responsiveness & Narrow Screen Adjustments */
+@media (max-width: 640px) {
+  body {
+    padding: 1rem 0.5rem;
+  }
+
+  .app-container {
+    padding: 1.75rem 1.15rem;
+    border-radius: 18px;
+  }
+
+  .app-title {
+    font-size: 2rem;
+  }
+
+  .dashboard-header-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .dashboard-user-badge {
+    justify-content: center;
+  }
+
+  .dashboard-user-email {
+    max-width: 180px;
+  }
+
+  .notes-header-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .btn-add-note {
+    width: 100%;
+    text-align: center;
+  }
+
+  .btn-danger-outline {
+    width: 100%;
+    text-align: center;
+  }
+
+  .notes-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .note-card-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .delete-confirm-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+}
+
 
 
 
