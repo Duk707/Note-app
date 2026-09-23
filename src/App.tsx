@@ -52,6 +52,8 @@ export function App() {
   }, []);
 
   const handleSignOut = async () => {
+    if (signOutLoading) return;
+
     setSignOutLoading(true);
     setAuthError(null);
 
@@ -92,8 +94,8 @@ export function App() {
             {initialLoading
               ? 'Checking Authentication...'
               : session
-              ? 'Step 10 - Delete Notes'
-              : 'Step 10 - Authentication Required'}
+              ? 'Step 11 - Validation & Error Handling'
+              : 'Step 11 - Authentication Required'}
           </span>
         </div>
       </div>

@@ -5,6 +5,8 @@ interface RegisterProps {
   onSwitchToLogin?: () => void;
 }
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export function Register({ onSwitchToLogin }: RegisterProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -15,12 +17,23 @@ export function Register({ onSwitchToLogin }: RegisterProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Prevent duplicate submissions if an operation is already pending
+    if (loading) return;
+
     setError(null);
     setRegisteredEmail(null);
 
+    const trimmedEmail = email.trim();
+
     // Client-side validation
-    if (!email.trim() || !password || !confirmPassword) {
+    if (!trimmedEmail || !password || !confirmPassword) {
       setError('Please fill in all required fields.');
+      return;
+    }
+
+    if (!EMAIL_REGEX.test(trimmedEmail)) {
+      setError('Please enter a valid email address (e.g. user@example.com).');
       return;
     }
 
@@ -38,25 +51,26 @@ export function Register({ onSwitchToLogin }: RegisterProps) {
 
     try {
       const { data, error: signUpError } = await supabase.auth.signUp({
-        email: email.trim(),
+        email: trimmedEmail,
         password,
       });
 
       if (signUpError) {
+        // Preserves input values so user can fix and retry
         setError(signUpError.message);
       } else if (data.user) {
-        setRegisteredEmail(data.user.email || email.trim());
+        setRegisteredEmail(data.user.email || trimmedEmail);
         setEmail('');
         setPassword('');
         setConfirmPassword('');
       } else {
-        setError('An unexpected error occurred during registration.');
+        setError('An unexpected error occurred during registration. Please try again.');
       }
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
       } else {
-        setError('An unexpected error occurred.');
+        setError('A network or unexpected error occurred. Please check your connection and try again.');
       }
     } finally {
       setLoading(false);
@@ -159,7 +173,12 @@ export function Register({ onSwitchToLogin }: RegisterProps) {
       {onSwitchToLogin && (
         <p className="auth-footer-text">
           Already have an account?{' '}
-          <button type="button" className="auth-link-button" onClick={onSwitchToLogin}>
+          <button
+            type="button"
+            className="auth-link-button"
+            onClick={onSwitchToLogin}
+            disabled={loading}
+          >
             Log In
           </button>
         </p>
@@ -167,6 +186,5 @@ export function Register({ onSwitchToLogin }: RegisterProps) {
     </div>
   );
 }
-
 
 export default Register;

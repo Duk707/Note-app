@@ -5,6 +5,8 @@ interface LoginProps {
   onSwitchToRegister?: () => void;
 }
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export function Login({ onSwitchToRegister }: LoginProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -14,12 +16,23 @@ export function Login({ onSwitchToRegister }: LoginProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Prevent duplicate submissions if an operation is already pending
+    if (loading) return;
+
     setError(null);
     setLoggedInEmail(null);
 
+    const trimmedEmail = email.trim();
+
     // Client-side validation
-    if (!email.trim() || !password) {
+    if (!trimmedEmail || !password) {
       setError('Please enter both email address and password.');
+      return;
+    }
+
+    if (!EMAIL_REGEX.test(trimmedEmail)) {
+      setError('Please enter a valid email address (e.g. user@example.com).');
       return;
     }
 
@@ -27,24 +40,25 @@ export function Login({ onSwitchToRegister }: LoginProps) {
 
     try {
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
+        email: trimmedEmail,
         password,
       });
 
       if (signInError) {
+        // Preserves input values so user can fix and retry
         setError(signInError.message);
       } else if (data.user) {
-        setLoggedInEmail(data.user.email || email.trim());
+        setLoggedInEmail(data.user.email || trimmedEmail);
         setEmail('');
         setPassword('');
       } else {
-        setError('An unexpected error occurred during login.');
+        setError('An unexpected error occurred during login. Please try again.');
       }
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
       } else {
-        setError('An unexpected error occurred.');
+        setError('A network or unexpected error occurred. Please check your connection and try again.');
       }
     } finally {
       setLoading(false);
@@ -130,7 +144,12 @@ export function Login({ onSwitchToRegister }: LoginProps) {
       {onSwitchToRegister && (
         <p className="auth-footer-text">
           Don't have an account?{' '}
-          <button type="button" className="auth-link-button" onClick={onSwitchToRegister}>
+          <button
+            type="button"
+            className="auth-link-button"
+            onClick={onSwitchToRegister}
+            disabled={loading}
+          >
             Register
           </button>
         </p>

@@ -41,6 +41,8 @@ export function Dashboard({ userId, userEmail, onSignOut, signOutLoading }: Dash
   const [deleteLoadingId, setDeleteLoadingId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
+  const isAnyMutationActive = createLoading || editLoading || deleteLoadingId !== null;
+
   const fetchNotes = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -60,7 +62,7 @@ export function Dashboard({ userId, userEmail, onSignOut, signOutLoading }: Dash
       if (err instanceof Error) {
         setError(err.message);
       } else {
-        setError('An unexpected error occurred while loading notes.');
+        setError('A network error occurred while loading notes. Please check your connection and retry.');
       }
     } finally {
       setLoading(false);
@@ -73,10 +75,17 @@ export function Dashboard({ userId, userEmail, onSignOut, signOutLoading }: Dash
 
   const handleCreateNote = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Prevent duplicate submission at logic level
+    if (createLoading) return;
+
     setCreateError(null);
 
+    const trimmedTitle = newTitle.trim();
+    const trimmedContent = newContent.trim();
+
     // Validation
-    if (!newTitle.trim() || !newContent.trim()) {
+    if (!trimmedTitle || !trimmedContent) {
       setCreateError('Please enter both a title and content for your note.');
       return;
     }
@@ -88,26 +97,29 @@ export function Dashboard({ userId, userEmail, onSignOut, signOutLoading }: Dash
         .from('notes')
         .insert([
           {
-            title: newTitle.trim(),
-            content: newContent.trim(),
+            title: trimmedTitle,
+            content: trimmedContent,
             user_id: userId,
           },
         ])
         .select('id, user_id, title, content, created_at, updated_at');
 
       if (insertError) {
+        // Preserves typed title & content so user can fix and retry upon failure
         setCreateError(insertError.message);
       } else if (data && data.length > 0) {
         setNotes((prevNotes) => [data[0] as Note, ...prevNotes]);
         setNewTitle('');
         setNewContent('');
         setIsCreating(false);
+      } else {
+        setCreateError('Failed to create note. Please try again.');
       }
     } catch (err: unknown) {
       if (err instanceof Error) {
         setCreateError(err.message);
       } else {
-        setCreateError('An unexpected error occurred while creating your note.');
+        setCreateError('An unexpected network error occurred while creating your note.');
       }
     } finally {
       setCreateLoading(false);
@@ -115,16 +127,17 @@ export function Dashboard({ userId, userEmail, onSignOut, signOutLoading }: Dash
   };
 
   const handleStartEdit = (note: Note) => {
+    if (isAnyMutationActive) return;
     setEditingNoteId(note.id);
     setEditTitle(note.title);
     setEditContent(note.content);
     setEditError(null);
-    // Cancel any open deletion confirmation
     setDeletingNoteId(null);
     setDeleteError(null);
   };
 
   const handleCancelEdit = () => {
+    if (editLoading) return;
     setEditingNoteId(null);
     setEditTitle('');
     setEditContent('');
@@ -133,11 +146,14 @@ export function Dashboard({ userId, userEmail, onSignOut, signOutLoading }: Dash
 
   const handleUpdateNote = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingNoteId) return;
+    if (!editingNoteId || editLoading) return;
 
     setEditError(null);
 
-    if (!editTitle.trim() || !editContent.trim()) {
+    const trimmedTitle = editTitle.trim();
+    const trimmedContent = editContent.trim();
+
+    if (!trimmedTitle || !trimmedContent) {
       setEditError('Please enter both a title and content for your note.');
       return;
     }
@@ -149,8 +165,8 @@ export function Dashboard({ userId, userEmail, onSignOut, signOutLoading }: Dash
       const { data, error: updateError } = await supabase
         .from('notes')
         .update({
-          title: editTitle.trim(),
-          content: editContent.trim(),
+          title: trimmedTitle,
+          content: trimmedContent,
           updated_at: updatedAtIso,
         })
         .eq('id', editingNoteId)
@@ -158,6 +174,7 @@ export function Dashboard({ userId, userEmail, onSignOut, signOutLoading }: Dash
         .select('id, user_id, title, content, created_at, updated_at');
 
       if (updateError) {
+        // Preserves typed title & content edits upon failure
         setEditError(updateError.message);
       } else if (data && data.length > 0) {
         const updatedNote = data[0] as Note;
@@ -167,12 +184,14 @@ export function Dashboard({ userId, userEmail, onSignOut, signOutLoading }: Dash
         setEditingNoteId(null);
         setEditTitle('');
         setEditContent('');
+      } else {
+        setEditError('Note update failed. The note was not found or permission was denied.');
       }
     } catch (err: unknown) {
       if (err instanceof Error) {
         setEditError(err.message);
       } else {
-        setEditError('An unexpected error occurred while updating the note.');
+        setEditError('An unexpected network error occurred while updating the note.');
       }
     } finally {
       setEditLoading(false);
@@ -180,20 +199,23 @@ export function Dashboard({ userId, userEmail, onSignOut, signOutLoading }: Dash
   };
 
   const handleStartDelete = (noteId: string) => {
+    if (isAnyMutationActive) return;
     setDeletingNoteId(noteId);
     setDeleteError(null);
-    // Cancel any active edit form
     if (editingNoteId === noteId) {
       setEditingNoteId(null);
     }
   };
 
   const handleCancelDelete = () => {
+    if (deleteLoadingId !== null) return;
     setDeletingNoteId(null);
     setDeleteError(null);
   };
 
   const handleDeleteNote = async (noteId: string) => {
+    if (deleteLoadingId !== null) return;
+
     setDeleteLoadingId(noteId);
     setDeleteError(null);
 
@@ -208,7 +230,6 @@ export function Dashboard({ userId, userEmail, onSignOut, signOutLoading }: Dash
       if (deleteQueryError) {
         setDeleteError(deleteQueryError.message);
       } else if (data && data.length > 0 && data[0].id === noteId) {
-        // Only remove note from local state & close confirmation UI AFTER Supabase confirms row deletion!
         setNotes((prevNotes) => prevNotes.filter((n) => n.id !== noteId));
         setDeletingNoteId(null);
       } else {
@@ -218,7 +239,7 @@ export function Dashboard({ userId, userEmail, onSignOut, signOutLoading }: Dash
       if (err instanceof Error) {
         setDeleteError(err.message);
       } else {
-        setDeleteError('An unexpected error occurred while deleting the note.');
+        setDeleteError('An unexpected network error occurred while deleting the note.');
       }
     } finally {
       setDeleteLoadingId(null);
@@ -237,7 +258,7 @@ export function Dashboard({ userId, userEmail, onSignOut, signOutLoading }: Dash
           type="button"
           className="btn-danger-outline"
           onClick={onSignOut}
-          disabled={signOutLoading}
+          disabled={signOutLoading || isAnyMutationActive}
         >
           {signOutLoading ? (
             <span className="button-spinner-wrapper">
@@ -263,6 +284,7 @@ export function Dashboard({ userId, userEmail, onSignOut, signOutLoading }: Dash
             <button
               type="button"
               className="btn-add-note"
+              disabled={isAnyMutationActive || loading}
               onClick={() => {
                 setCreateError(null);
                 setIsCreating(true);
@@ -355,8 +377,13 @@ export function Dashboard({ userId, userEmail, onSignOut, signOutLoading }: Dash
               </svg>
               <span>{error}</span>
             </div>
-            <button type="button" className="btn-retry" onClick={fetchNotes}>
-              Retry Loading Notes
+            <button
+              type="button"
+              className="btn-retry"
+              onClick={fetchNotes}
+              disabled={loading}
+            >
+              {loading ? 'Retrying...' : 'Retry Loading Notes'}
             </button>
           </div>
         )}
@@ -459,7 +486,7 @@ export function Dashboard({ userId, userEmail, onSignOut, signOutLoading }: Dash
                           className="btn-edit"
                           onClick={() => handleStartEdit(note)}
                           title="Edit Note"
-                          disabled={deleteLoadingId === note.id}
+                          disabled={isAnyMutationActive}
                         >
                           <svg fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
@@ -472,7 +499,7 @@ export function Dashboard({ userId, userEmail, onSignOut, signOutLoading }: Dash
                           className="btn-delete"
                           onClick={() => handleStartDelete(note.id)}
                           title="Delete Note"
-                          disabled={deleteLoadingId === note.id}
+                          disabled={isAnyMutationActive}
                         >
                           <svg fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
