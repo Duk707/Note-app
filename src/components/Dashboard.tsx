@@ -36,6 +36,11 @@ export function Dashboard({ userId, userEmail, onSignOut, signOutLoading }: Dash
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
 
+  // Note deletion states
+  const [deletingNoteId, setDeletingNoteId] = useState<string | null>(null);
+  const [deleteLoadingId, setDeleteLoadingId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
   const fetchNotes = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -114,6 +119,9 @@ export function Dashboard({ userId, userEmail, onSignOut, signOutLoading }: Dash
     setEditTitle(note.title);
     setEditContent(note.content);
     setEditError(null);
+    // Cancel any open deletion confirmation
+    setDeletingNoteId(null);
+    setDeleteError(null);
   };
 
   const handleCancelEdit = () => {
@@ -150,10 +158,8 @@ export function Dashboard({ userId, userEmail, onSignOut, signOutLoading }: Dash
         .select('id, user_id, title, content, created_at, updated_at');
 
       if (updateError) {
-        // Preserve edited title & content input so user can retry upon failure!
         setEditError(updateError.message);
       } else if (data && data.length > 0) {
-        // Only update local state and exit edit mode AFTER Supabase confirms success
         const updatedNote = data[0] as Note;
         setNotes((prevNotes) =>
           prevNotes.map((n) => (n.id === editingNoteId ? updatedNote : n))
@@ -170,6 +176,52 @@ export function Dashboard({ userId, userEmail, onSignOut, signOutLoading }: Dash
       }
     } finally {
       setEditLoading(false);
+    }
+  };
+
+  const handleStartDelete = (noteId: string) => {
+    setDeletingNoteId(noteId);
+    setDeleteError(null);
+    // Cancel any active edit form
+    if (editingNoteId === noteId) {
+      setEditingNoteId(null);
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setDeletingNoteId(null);
+    setDeleteError(null);
+  };
+
+  const handleDeleteNote = async (noteId: string) => {
+    setDeleteLoadingId(noteId);
+    setDeleteError(null);
+
+    try {
+      const { data, error: deleteQueryError } = await supabase
+        .from('notes')
+        .delete()
+        .eq('id', noteId)
+        .eq('user_id', userId)
+        .select('id');
+
+      if (deleteQueryError) {
+        setDeleteError(deleteQueryError.message);
+      } else if (data && data.length > 0 && data[0].id === noteId) {
+        // Only remove note from local state & close confirmation UI AFTER Supabase confirms row deletion!
+        setNotes((prevNotes) => prevNotes.filter((n) => n.id !== noteId));
+        setDeletingNoteId(null);
+      } else {
+        setDeleteError('Failed to delete note. The note was not found or access was denied.');
+      }
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setDeleteError(err.message);
+      } else {
+        setDeleteError('An unexpected error occurred while deleting the note.');
+      }
+    } finally {
+      setDeleteLoadingId(null);
     }
   };
 
@@ -401,20 +453,78 @@ export function Dashboard({ userId, userEmail, onSignOut, signOutLoading }: Dash
                   <>
                     <div className="note-card-header">
                       <h3 className="note-title">{note.title}</h3>
-                      <button
-                        type="button"
-                        className="btn-edit"
-                        onClick={() => handleStartEdit(note)}
-                        title="Edit Note"
-                      >
-                        <svg fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
-                        </svg>
-                        <span>Edit</span>
-                      </button>
+                      <div className="note-card-actions">
+                        <button
+                          type="button"
+                          className="btn-edit"
+                          onClick={() => handleStartEdit(note)}
+                          title="Edit Note"
+                          disabled={deleteLoadingId === note.id}
+                        >
+                          <svg fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                          </svg>
+                          <span>Edit</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          className="btn-delete"
+                          onClick={() => handleStartDelete(note.id)}
+                          title="Delete Note"
+                          disabled={deleteLoadingId === note.id}
+                        >
+                          <svg fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                          </svg>
+                          <span>Delete</span>
+                        </button>
+                      </div>
                     </div>
 
                     <p className="note-content">{note.content}</p>
+
+                    {deletingNoteId === note.id && (
+                      <div className="delete-confirm-box">
+                        <p className="delete-confirm-text">
+                          Are you sure you want to delete this note?
+                        </p>
+
+                        {deleteError && (
+                          <div className="alert alert-error" role="alert" style={{ marginBottom: '0.5rem', padding: '0.5rem 0.75rem', fontSize: '0.85rem' }}>
+                            <span>{deleteError}</span>
+                          </div>
+                        )}
+
+                        <div className="delete-confirm-actions">
+                          <button
+                            type="button"
+                            className="btn-cancel"
+                            style={{ padding: '0.4rem 0.85rem', fontSize: '0.85rem' }}
+                            onClick={handleCancelDelete}
+                            disabled={deleteLoadingId === note.id}
+                          >
+                            Cancel
+                          </button>
+
+                          <button
+                            type="button"
+                            className="btn-confirm-delete"
+                            onClick={() => handleDeleteNote(note.id)}
+                            disabled={deleteLoadingId === note.id}
+                          >
+                            {deleteLoadingId === note.id ? (
+                              <span className="button-spinner-wrapper">
+                                <span className="spinner"></span>
+                                Deleting...
+                              </span>
+                            ) : (
+                              'Confirm Delete'
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    )}
 
                     <div className="note-footer">
                       <div className="note-dates-wrapper">
