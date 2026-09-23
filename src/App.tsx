@@ -3,6 +3,7 @@ import type { Session } from '@supabase/supabase-js';
 import { supabase } from './lib/supabase';
 import { Register } from './components/Register';
 import { Login } from './components/Login';
+import { Dashboard } from './components/Dashboard';
 
 export function App() {
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
@@ -91,8 +92,8 @@ export function App() {
             {initialLoading
               ? 'Checking Authentication...'
               : session
-              ? 'Authenticated Session'
-              : 'Step 5 - Login and Logout'}
+              ? 'Step 6 - Protected Notes Dashboard'
+              : 'Step 6 - Authentication Required'}
           </span>
         </div>
       </div>
@@ -117,31 +118,11 @@ export function App() {
           <p className="loading-text">Loading authentication session...</p>
         </div>
       ) : session ? (
-        <div className="auth-card">
-          <h2 className="auth-title">Authenticated User</h2>
-          <p className="auth-subtitle">You are currently logged into Notes App.</p>
-
-          <div className="user-email-box">
-            <span className="user-email-label">Account Email</span>
-            <code className="user-email-value">{session.user.email}</code>
-          </div>
-
-          <button
-            type="button"
-            className="btn-danger"
-            onClick={handleSignOut}
-            disabled={signOutLoading}
-          >
-            {signOutLoading ? (
-              <span className="button-spinner-wrapper">
-                <span className="spinner"></span>
-                Logging out...
-              </span>
-            ) : (
-              'Log Out'
-            )}
-          </button>
-        </div>
+        <Dashboard
+          userEmail={session.user.email ?? ''}
+          onSignOut={handleSignOut}
+          signOutLoading={signOutLoading}
+        />
       ) : (
         <>
           <div className="auth-tab-bar">
