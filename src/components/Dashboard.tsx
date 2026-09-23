@@ -29,6 +29,13 @@ export function Dashboard({ userId, userEmail, onSignOut, signOutLoading }: Dash
   const [createLoading, setCreateLoading] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
 
+  // Note editing states
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editContent, setEditContent] = useState('');
+  const [editLoading, setEditLoading] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+
   const fetchNotes = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -84,10 +91,8 @@ export function Dashboard({ userId, userEmail, onSignOut, signOutLoading }: Dash
         .select('id, user_id, title, content, created_at, updated_at');
 
       if (insertError) {
-        // Preserve user's title & content input so they can retry upon failure!
         setCreateError(insertError.message);
       } else if (data && data.length > 0) {
-        // Only clear title/content and close creation view AFTER insertion succeeds
         setNotes((prevNotes) => [data[0] as Note, ...prevNotes]);
         setNewTitle('');
         setNewContent('');
@@ -101,6 +106,70 @@ export function Dashboard({ userId, userEmail, onSignOut, signOutLoading }: Dash
       }
     } finally {
       setCreateLoading(false);
+    }
+  };
+
+  const handleStartEdit = (note: Note) => {
+    setEditingNoteId(note.id);
+    setEditTitle(note.title);
+    setEditContent(note.content);
+    setEditError(null);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingNoteId(null);
+    setEditTitle('');
+    setEditContent('');
+    setEditError(null);
+  };
+
+  const handleUpdateNote = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingNoteId) return;
+
+    setEditError(null);
+
+    if (!editTitle.trim() || !editContent.trim()) {
+      setEditError('Please enter both a title and content for your note.');
+      return;
+    }
+
+    setEditLoading(true);
+
+    try {
+      const updatedAtIso = new Date().toISOString();
+      const { data, error: updateError } = await supabase
+        .from('notes')
+        .update({
+          title: editTitle.trim(),
+          content: editContent.trim(),
+          updated_at: updatedAtIso,
+        })
+        .eq('id', editingNoteId)
+        .eq('user_id', userId)
+        .select('id, user_id, title, content, created_at, updated_at');
+
+      if (updateError) {
+        // Preserve edited title & content input so user can retry upon failure!
+        setEditError(updateError.message);
+      } else if (data && data.length > 0) {
+        // Only update local state and exit edit mode AFTER Supabase confirms success
+        const updatedNote = data[0] as Note;
+        setNotes((prevNotes) =>
+          prevNotes.map((n) => (n.id === editingNoteId ? updatedNote : n))
+        );
+        setEditingNoteId(null);
+        setEditTitle('');
+        setEditContent('');
+      }
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setEditError(err.message);
+      } else {
+        setEditError('An unexpected error occurred while updating the note.');
+      }
+    } finally {
+      setEditLoading(false);
     }
   };
 
@@ -261,17 +330,117 @@ export function Dashboard({ userId, userEmail, onSignOut, signOutLoading }: Dash
           <div className="notes-grid">
             {notes.map((note) => (
               <div key={note.id} className="note-card">
-                <h3 className="note-title">{note.title}</h3>
-                <p className="note-content">{note.content}</p>
-                <div className="note-footer">
-                  <span className="note-date">
-                    {new Date(note.created_at).toLocaleDateString(undefined, {
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric',
-                    })}
-                  </span>
-                </div>
+                {editingNoteId === note.id ? (
+                  <form onSubmit={handleUpdateNote} className="note-card-edit-form" noValidate>
+                    <h4 className="edit-form-title">Edit Note</h4>
+
+                    {editError && (
+                      <div className="alert alert-error" role="alert" style={{ marginBottom: '0.75rem', padding: '0.75rem' }}>
+                        <span>{editError}</span>
+                      </div>
+                    )}
+
+                    <div className="form-group">
+                      <label htmlFor={`edit-title-${note.id}`} className="form-label">
+                        Title
+                      </label>
+                      <input
+                        id={`edit-title-${note.id}`}
+                        type="text"
+                        className="form-input"
+                        value={editTitle}
+                        onChange={(e) => setEditTitle(e.target.value)}
+                        disabled={editLoading}
+                        required
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label htmlFor={`edit-content-${note.id}`} className="form-label">
+                        Content
+                      </label>
+                      <textarea
+                        id={`edit-content-${note.id}`}
+                        className="form-input form-textarea"
+                        value={editContent}
+                        onChange={(e) => setEditContent(e.target.value)}
+                        rows={3}
+                        disabled={editLoading}
+                        required
+                      />
+                    </div>
+
+                    <div className="form-actions" style={{ marginTop: '0.75rem' }}>
+                      <button
+                        type="button"
+                        className="btn-cancel"
+                        onClick={handleCancelEdit}
+                        disabled={editLoading}
+                      >
+                        Cancel
+                      </button>
+
+                      <button
+                        type="submit"
+                        className="btn-primary"
+                        style={{ marginTop: 0 }}
+                        disabled={editLoading}
+                      >
+                        {editLoading ? (
+                          <span className="button-spinner-wrapper">
+                            <span className="spinner"></span>
+                            Saving...
+                          </span>
+                        ) : (
+                          'Save Changes'
+                        )}
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <>
+                    <div className="note-card-header">
+                      <h3 className="note-title">{note.title}</h3>
+                      <button
+                        type="button"
+                        className="btn-edit"
+                        onClick={() => handleStartEdit(note)}
+                        title="Edit Note"
+                      >
+                        <svg fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                        </svg>
+                        <span>Edit</span>
+                      </button>
+                    </div>
+
+                    <p className="note-content">{note.content}</p>
+
+                    <div className="note-footer">
+                      <div className="note-dates-wrapper">
+                        <span className="note-date">
+                          Created:{' '}
+                          {new Date(note.created_at).toLocaleDateString(undefined, {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                          })}
+                        </span>
+                        {note.updated_at && note.updated_at !== note.created_at && (
+                          <span className="note-updated-tag">
+                            (Updated:{' '}
+                            {new Date(note.updated_at).toLocaleDateString(undefined, {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric',
+                            })}
+                            )
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             ))}
           </div>

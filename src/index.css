@@ -742,6 +742,69 @@ body {
   cursor: not-allowed;
 }
 
+/* Note Editing Styles */
+.note-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.btn-edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.65rem;
+  background: rgba(59, 130, 246, 0.12);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 8px;
+  color: #60a5fa;
+  font-size: 0.8rem;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.btn-edit svg {
+  width: 14px;
+  height: 14px;
+}
+
+.btn-edit:hover {
+  background: rgba(59, 130, 246, 0.25);
+  border-color: rgba(59, 130, 246, 0.5);
+  color: #ffffff;
+}
+
+.note-card-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.edit-form-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #60a5fa;
+  margin-bottom: 0.25rem;
+}
+
+.note-dates-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.note-updated-tag {
+  font-size: 0.725rem;
+  color: #60a5fa;
+  font-style: italic;
+}
+
+
 
 
 
