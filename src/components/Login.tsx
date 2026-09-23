@@ -1,56 +1,44 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
 
-interface RegisterProps {
-  onSwitchToLogin?: () => void;
+interface LoginProps {
+  onSwitchToRegister?: () => void;
 }
 
-export function Register({ onSwitchToLogin }: RegisterProps) {
+export function Login({ onSwitchToRegister }: LoginProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [registeredEmail, setRegisteredEmail] = useState<string | null>(null);
+  const [loggedInEmail, setLoggedInEmail] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    setRegisteredEmail(null);
+    setLoggedInEmail(null);
 
     // Client-side validation
-    if (!email.trim() || !password || !confirmPassword) {
-      setError('Please fill in all required fields.');
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      setError('Passwords do not match.');
-      return;
-    }
-
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters long.');
+    if (!email.trim() || !password) {
+      setError('Please enter both email address and password.');
       return;
     }
 
     setLoading(true);
 
     try {
-      const { data, error: signUpError } = await supabase.auth.signUp({
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password,
       });
 
-      if (signUpError) {
-        setError(signUpError.message);
+      if (signInError) {
+        setError(signInError.message);
       } else if (data.user) {
-        setRegisteredEmail(data.user.email || email.trim());
+        setLoggedInEmail(data.user.email || email.trim());
         setEmail('');
         setPassword('');
-        setConfirmPassword('');
       } else {
-        setError('An unexpected error occurred during registration.');
+        setError('An unexpected error occurred during login.');
       }
     } catch (err: unknown) {
       if (err instanceof Error) {
@@ -65,8 +53,8 @@ export function Register({ onSwitchToLogin }: RegisterProps) {
 
   return (
     <div className="auth-card">
-      <h2 className="auth-title">Create an Account</h2>
-      <p className="auth-subtitle">Register to start organizing your personal notes.</p>
+      <h2 className="auth-title">Welcome Back</h2>
+      <p className="auth-subtitle">Log in to your account to access your personal notes.</p>
 
       {error && (
         <div className="alert alert-error" role="alert">
@@ -77,27 +65,27 @@ export function Register({ onSwitchToLogin }: RegisterProps) {
         </div>
       )}
 
-      {registeredEmail ? (
+      {loggedInEmail ? (
         <div className="alert alert-success" role="status">
           <svg className="alert-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
 
           <div>
-            <strong>Registration successful!</strong>
+            <strong>Login successful!</strong>
             <p style={{ marginTop: '0.4rem', fontSize: '0.9rem' }}>
-              Account created for <code>{registeredEmail}</code>. You are now registered and authenticated.
+              Authenticated as <code>{loggedInEmail}</code>.
             </p>
           </div>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="auth-form" noValidate>
           <div className="form-group">
-            <label htmlFor="email" className="form-label">
+            <label htmlFor="login-email" className="form-label">
               Email Address
             </label>
             <input
-              id="email"
+              id="login-email"
               type="email"
               className="form-input"
               value={email}
@@ -110,35 +98,18 @@ export function Register({ onSwitchToLogin }: RegisterProps) {
           </div>
 
           <div className="form-group">
-            <label htmlFor="password" className="form-label">
+            <label htmlFor="login-password" className="form-label">
               Password
             </label>
             <input
-              id="password"
+              id="login-password"
               type="password"
               className="form-input"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
               disabled={loading}
-              autoComplete="new-password"
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="confirmPassword" className="form-label">
-              Confirm Password
-            </label>
-            <input
-              id="confirmPassword"
-              type="password"
-              className="form-input"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="••••••••"
-              disabled={loading}
-              autoComplete="new-password"
+              autoComplete="current-password"
               required
             />
           </div>
@@ -147,20 +118,20 @@ export function Register({ onSwitchToLogin }: RegisterProps) {
             {loading ? (
               <span className="button-spinner-wrapper">
                 <span className="spinner"></span>
-                Creating account...
+                Logging in...
               </span>
             ) : (
-              'Register Account'
+              'Log In'
             )}
           </button>
         </form>
       )}
 
-      {onSwitchToLogin && (
+      {onSwitchToRegister && (
         <p className="auth-footer-text">
-          Already have an account?{' '}
-          <button type="button" className="auth-link-button" onClick={onSwitchToLogin}>
-            Log In
+          Don't have an account?{' '}
+          <button type="button" className="auth-link-button" onClick={onSwitchToRegister}>
+            Register
           </button>
         </p>
       )}
@@ -168,5 +139,4 @@ export function Register({ onSwitchToLogin }: RegisterProps) {
   );
 }
 
-
-export default Register;
+export default Login;

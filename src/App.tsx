@@ -1,6 +1,10 @@
+import { useState } from 'react';
 import { Register } from './components/Register';
+import { Login } from './components/Login';
 
 export function App() {
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+
   return (
     <div className="app-container">
       <div className="app-header">
@@ -22,14 +26,36 @@ export function App() {
         <h1 className="app-title">Notes App</h1>
         <div className="status-badge">
           <span className="status-dot"></span>
-          <span>Step 4 - User Registration</span>
+          <span>Step 5 - User Login</span>
         </div>
       </div>
 
-      <Register />
+      <div className="auth-tab-bar">
+        <button
+          type="button"
+          className={`auth-tab ${authMode === 'login' ? 'active' : ''}`}
+          onClick={() => setAuthMode('login')}
+        >
+          Log In
+        </button>
+        <button
+          type="button"
+          className={`auth-tab ${authMode === 'register' ? 'active' : ''}`}
+          onClick={() => setAuthMode('register')}
+        >
+          Register
+        </button>
+      </div>
+
+      {authMode === 'login' ? (
+        <Login onSwitchToRegister={() => setAuthMode('register')} />
+      ) : (
+        <Register onSwitchToLogin={() => setAuthMode('login')} />
+      )}
     </div>
   );
 }
 
 export default App;
+
 
