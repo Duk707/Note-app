@@ -1,9 +1,70 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import type { Session } from '@supabase/supabase-js';
+import { supabase } from './lib/supabase';
 import { Register } from './components/Register';
 import { Login } from './components/Login';
 
 export function App() {
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  const [session, setSession] = useState<Session | null>(null);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [signOutLoading, setSignOutLoading] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const initSession = async () => {
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        if (error && isMounted) {
+          setAuthError(error.message);
+        } else if (isMounted) {
+          setSession(data.session);
+        }
+      } catch (err: unknown) {
+        if (isMounted) {
+          setAuthError(err instanceof Error ? err.message : 'Failed to retrieve auth session.');
+        }
+      } finally {
+        if (isMounted) {
+          setInitialLoading(false);
+        }
+      }
+    };
+
+    initSession();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, currentSession) => {
+      if (isMounted) {
+        setSession(currentSession);
+        setAuthError(null);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const handleSignOut = async () => {
+    setSignOutLoading(true);
+    setAuthError(null);
+
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        setAuthError(error.message);
+      }
+    } catch (err: unknown) {
+      setAuthError(err instanceof Error ? err.message : 'An error occurred during sign out.');
+    } finally {
+      setSignOutLoading(false);
+    }
+  };
 
   return (
     <div className="app-container">
@@ -26,36 +87,92 @@ export function App() {
         <h1 className="app-title">Notes App</h1>
         <div className="status-badge">
           <span className="status-dot"></span>
-          <span>Step 5 - User Login</span>
+          <span>
+            {initialLoading
+              ? 'Checking Authentication...'
+              : session
+              ? 'Authenticated Session'
+              : 'Step 5 - Login and Logout'}
+          </span>
         </div>
       </div>
 
-      <div className="auth-tab-bar">
-        <button
-          type="button"
-          className={`auth-tab ${authMode === 'login' ? 'active' : ''}`}
-          onClick={() => setAuthMode('login')}
-        >
-          Log In
-        </button>
-        <button
-          type="button"
-          className={`auth-tab ${authMode === 'register' ? 'active' : ''}`}
-          onClick={() => setAuthMode('register')}
-        >
-          Register
-        </button>
-      </div>
+      {authError && (
+        <div className="alert alert-error" role="alert" style={{ marginBottom: '1.5rem' }}>
+          <svg className="alert-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+          <span>{authError}</span>
+        </div>
+      )}
 
-      {authMode === 'login' ? (
-        <Login onSwitchToRegister={() => setAuthMode('register')} />
+      {initialLoading ? (
+        <div className="loading-container">
+          <span className="spinner spinner-large"></span>
+          <p className="loading-text">Loading authentication session...</p>
+        </div>
+      ) : session ? (
+        <div className="auth-card">
+          <h2 className="auth-title">Authenticated User</h2>
+          <p className="auth-subtitle">You are currently logged into Notes App.</p>
+
+          <div className="user-email-box">
+            <span className="user-email-label">Account Email</span>
+            <code className="user-email-value">{session.user.email}</code>
+          </div>
+
+          <button
+            type="button"
+            className="btn-danger"
+            onClick={handleSignOut}
+            disabled={signOutLoading}
+          >
+            {signOutLoading ? (
+              <span className="button-spinner-wrapper">
+                <span className="spinner"></span>
+                Logging out...
+              </span>
+            ) : (
+              'Log Out'
+            )}
+          </button>
+        </div>
       ) : (
-        <Register onSwitchToLogin={() => setAuthMode('login')} />
+        <>
+          <div className="auth-tab-bar">
+            <button
+              type="button"
+              className={`auth-tab ${authMode === 'login' ? 'active' : ''}`}
+              onClick={() => setAuthMode('login')}
+            >
+              Log In
+            </button>
+            <button
+              type="button"
+              className={`auth-tab ${authMode === 'register' ? 'active' : ''}`}
+              onClick={() => setAuthMode('register')}
+            >
+              Register
+            </button>
+          </div>
+
+          {authMode === 'login' ? (
+            <Login onSwitchToRegister={() => setAuthMode('register')} />
+          ) : (
+            <Register onSwitchToLogin={() => setAuthMode('login')} />
+          )}
+        </>
       )}
     </div>
   );
 }
 
 export default App;
+
 
 
