@@ -1,3 +1,5 @@
+import { Register } from './components/Register';
+
 export function App() {
   return (
     <div className="app-container">
@@ -20,31 +22,14 @@ export function App() {
         <h1 className="app-title">Notes App</h1>
         <div className="status-badge">
           <span className="status-dot"></span>
-          <span>Step 2 - Frontend Setup Complete</span>
+          <span>Step 4 - User Registration</span>
         </div>
       </div>
 
-      <p className="app-description">
-        Welcome to <strong>Notes App</strong>. The initial React + Vite + TypeScript frontend template has been configured successfully.
-      </p>
-
-      <div className="info-cards">
-        <div className="info-card">
-          <h2 className="info-card-title">Authentication</h2>
-          <p className="info-card-desc">
-            User registration, login, and session persistence using Supabase Auth will be added in upcoming steps.
-          </p>
-        </div>
-
-        <div className="info-card">
-          <h2 className="info-card-title">Notes Management</h2>
-          <p className="info-card-desc">
-            Personal notes creation, editing, viewing, and deletion with Row Level Security (RLS) will be implemented later.
-          </p>
-        </div>
-      </div>
+      <Register />
     </div>
   );
 }
 
 export default App;
+
