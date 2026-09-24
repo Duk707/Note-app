@@ -139,12 +139,16 @@ VITE_SUPABASE_PUBLISHABLE_KEY=YOUR_SUPABASE_PUBLISHABLE_KEY
    npm install
    ```
 
-3. **Configure environment variables**:
-   Create a `.env.local` file in the root directory and add your Supabase credentials:
+3. **Configure Supabase and environment variables**:
+
+   Use a Supabase project configured with the required `notes` table,
+   authentication, and Row Level Security policies described above.
+
+   Create a `.env.local` file in the project root:
+
    ```env
    VITE_SUPABASE_URL=https://your-project.supabase.co
-   VITE_SUPABASE_PUBLISHABLE_KEY=your-publishable-anon-key
-   ```
+   VITE_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
 
 4. **Run development server**:
    ```bash
