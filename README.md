@@ -150,7 +150,7 @@ VITE_SUPABASE_PUBLISHABLE_KEY=YOUR_SUPABASE_PUBLISHABLE_KEY
    ```bash
    npm run dev
    ```
-   Open [http://localhost:5173](http://localhost:5173) in your browser.
+   Open the local URL(localhost) shown in the terminal after starting the development server.
 
 5. **Build for production**:
    ```bash
