@@ -14,16 +14,6 @@ A full-stack personal notes application built for an Engineering Design 2 assign
 
 - **Video Link**: `[Demonstration Video Placeholder - Unlisted YouTube URL to be added]`
 
-### Demo Recording Checklist
-
-The required demonstration video will cover the following requirements:
-- [ ] **Length**: 3 to 5 minutes long.
-- [ ] **Environment**: Recorded using the live deployed Netlify application ([https://jrc-fau-note-app.netlify.app](https://jrc-fau-note-app.netlify.app)), not localhost.
-- [ ] **Authentication Flow**: Demonstrate new user registration, login, session persistence, and logout.
-- [ ] **Database & CRUD Functionality**: Show creating, reading, editing, and deleting notes and verify that the changes persist in Supabase.
-- [ ] **Code & Project Walkthrough**: Briefly walk through the codebase structure, Supabase client initialization, RLS configuration, and Netlify deployment setup.
-- [ ] **Privacy**: Published as an unlisted YouTube video.
-
 ---
 
 ## Architecture Overview
