@@ -156,8 +156,3 @@ VITE_SUPABASE_PUBLISHABLE_KEY=YOUR_SUPABASE_PUBLISHABLE_KEY
    ```bash
    npm run build
    ```
-
-6. **Preview production build locally**:
-   ```bash
-   npm run preview
-   ```
