@@ -12,8 +12,7 @@ A full-stack personal notes application built for an Engineering Design 2 assign
 
 ## Demonstration Video
 
-- **Video Link**: `[Demonstration Video Placeholder - Unlisted YouTube URL to be added]`
-
+- **Video Link**: [Watch the demonstration video](https://youtu.be/g-K3Eif7Ep0)
 ---
 
 ## Architecture Overview
